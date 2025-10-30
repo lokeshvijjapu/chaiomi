@@ -10,7 +10,7 @@ function App() {
   // Fetch logs every 5 seconds
   const fetchLogs = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/logs");
+      const res = await axios.get("https://api-chaiomi.onrender.com/api/logs");
       const data = res.data;
       setLogs(data);
 
