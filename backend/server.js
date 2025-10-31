@@ -8,13 +8,14 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ Replace with your MongoDB URI
 const mongoURI = "mongodb+srv://chaiomi:chaiomi123@cluster1.r9ld2gr.mongodb.net/?appName=Cluster1";
-const DEVICE_IP = "http://192.168.0.45"; // <-- Use your ESP32 actual LAN IP here
 
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("✅ Connected to MongoDB and ready!"))
   .catch(err => console.error("❌ MongoDB connection error:", err));
+
+// In-memory map to track last heartbeat per device
+const deviceLastSeen = {};
 
 // 1️⃣ Endpoint to log data
 app.post('/api/logs', async (req, res) => {
@@ -50,14 +51,27 @@ app.get('/api/logs/:deviceId', async (req, res) => {
   }
 });
 
-// 4️⃣ Device online/offline by backend ping to ESP32
-app.get('/api/status', async (req, res) => {
-  try {
-    await axios.get(`${DEVICE_IP}/ping`, { timeout: 2000 });
-    res.json({ online: true });
-  } catch (err) {
-    res.json({ online: false });
+// 4️⃣ Heartbeat API to receive device heartbeat POSTs
+app.post('/api/heartbeat', (req, res) => {
+  const { deviceId } = req.body;
+  if (!deviceId) {
+    return res.status(400).json({ error: "deviceId required" });
   }
+  deviceLastSeen[deviceId] = Date.now();
+  res.json({ success: true });
+});
+
+// 5️⃣ Device online/offline status based on last heartbeat time
+app.get('/api/status', (req, res) => {
+  const now = Date.now();
+  // Default to offline
+  let online = false;
+  // Check if Device-1 last heartbeat within last 2 minutes (120000 ms)
+  const lastSeen = deviceLastSeen["Device-1"];
+  if (lastSeen && now - lastSeen < 120000) {
+    online = true;
+  }
+  res.json({ online });
 });
 
 const PORT = 5000;
