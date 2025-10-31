@@ -3,8 +3,6 @@ import axios from "axios";
 import LogTable from "./components/LogTable";
 import MetricsCard from "./components/MetricsCard";
 
-const DEVICE_IP = "http://192.168.0.45"; // use your ESP32's actual LAN IP here
-
 function App() {
   const [logs, setLogs] = useState([]);
   const [metrics, setMetrics] = useState({ total: 0, lastAction: "N/A" });
@@ -28,24 +26,24 @@ function App() {
     }
   };
 
-  // Check device online status by ping
-  const checkDeviceOnline = async () => {
+  // Fetch online status every 5 seconds
+  const fetchStatus = async () => {
     try {
-      await axios.get(`${DEVICE_IP}/ping`, { timeout: 2000 });
-      setIsOnline(true);
+      const res = await axios.get("https://api-chaiomi.onrender.com/api/status");
+      setIsOnline(res.data.online);
     } catch (err) {
-      setIsOnline(false);
+      setIsOnline(false); // error means offline
     }
   };
 
   useEffect(() => {
     fetchLogs();
-    checkDeviceOnline();
+    fetchStatus();
     const logInterval = setInterval(fetchLogs, 5000);
-    const pingInterval = setInterval(checkDeviceOnline, 300000); // Every 5 min
+    const statusInterval = setInterval(fetchStatus, 5000); // Fast update (set longer for less frequent checks)
     return () => {
       clearInterval(logInterval);
-      clearInterval(pingInterval);
+      clearInterval(statusInterval);
     };
   }, []);
 
