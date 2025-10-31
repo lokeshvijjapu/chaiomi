@@ -51,5 +51,21 @@ app.get('/api/logs/:deviceId', async (req, res) => {
   }
 });
 
+// 4️⃣ Endpoint to show device online/offline status based on last log
+app.get('/api/status', async (req, res) => {
+  try {
+    // Assume device is "online" if any log received in last 10 seconds
+    const tenSecondsAgo = new Date(Date.now() - 10000);
+    const latestLog = await Log.findOne().sort({ timestamp: -1 });
+    let online = false;
+    if (latestLog && latestLog.timestamp > tenSecondsAgo) {
+      online = true;
+    }
+    res.json({ online });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
